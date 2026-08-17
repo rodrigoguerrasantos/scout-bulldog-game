@@ -11,15 +11,28 @@ const player = {
   width: 50,
   height: 70,
   speed: 4,
-  direction: "right"
+  direction: "right",
+  frame: 0,
+  frameTimer: 0,
+  frameSpeed: 8,
+  moving: false
 };
+
+const playerFrames = [
+  { x: 56,  y: 258, width: 142, height: 191 },
+  { x: 216, y: 257, width: 153, height: 193 },
+  { x: 394, y: 258, width: 161, height: 192 },
+  { x: 584, y: 258, width: 156, height: 193 },
+  { x: 784, y: 255, width: 154, height: 196 },
+  { x: 975, y: 258, width: 160, height: 198 }
+];
 
 const bulldog = {
   x: 600,
   y: 365,
   width: 65,
   height: 90,
-  speed: 1.2,
+  speed: 1.1,
   direction: "left"
 };
 
@@ -54,22 +67,28 @@ document.addEventListener("keyup", function(event) {
 });
 
 function movePlayer() {
+  player.moving = false;
+
   if (keys["ArrowRight"]) {
     player.x += player.speed;
     player.direction = "right";
+    player.moving = true;
   }
 
   if (keys["ArrowLeft"]) {
     player.x -= player.speed;
     player.direction = "left";
+    player.moving = true;
   }
 
   if (keys["ArrowUp"]) {
     player.y -= player.speed;
+    player.moving = true;
   }
 
   if (keys["ArrowDown"]) {
     player.y += player.speed;
+    player.moving = true;
   }
 
   if (player.x < 0) {
@@ -86,6 +105,25 @@ function movePlayer() {
 
   if (player.y + player.height > field.bottom) {
     player.y = field.bottom - player.height;
+  }
+}
+
+function updatePlayerAnimation() {
+  if (!player.moving) {
+    player.frame = 0;
+    player.frameTimer = 0;
+    return;
+  }
+
+  player.frameTimer++;
+
+  if (player.frameTimer >= player.frameSpeed) {
+    player.frame++;
+    player.frameTimer = 0;
+
+    if (player.frame >= playerFrames.length) {
+  player.frame = 0;
+}
   }
 }
 
@@ -129,17 +167,40 @@ function drawBulldog() {
 }
 
 function drawPlayer() {
-  ctx.drawImage(
-    playerSprite,
+  const frame = playerFrames[player.frame];
 
-    56, 259,
-    142, 190,
+  ctx.save();
 
-    player.x,
-    player.y,
-    player.width,
-    player.height
-  );
+  if (player.direction === "left") {
+    ctx.translate(player.x + player.width, player.y);
+    ctx.scale(-1, 1);
+
+    ctx.drawImage(
+      playerSprite,
+      frame.x,
+      frame.y,
+      frame.width,
+      frame.height,
+      0,
+      0,
+      player.width,
+      player.height
+    );
+  } else {
+    ctx.drawImage(
+      playerSprite,
+      frame.x,
+      frame.y,
+      frame.width,
+      frame.height,
+      player.x,
+      player.y,
+      player.width,
+      player.height
+    );
+  }
+
+  ctx.restore();
 }
 
 function drawField() {
@@ -220,6 +281,7 @@ function gameLoop() {
 
   if (!roundOver) {
     movePlayer();
+    updatePlayerAnimation();
     moveBulldog();
 
     if (checkCollision()) {
