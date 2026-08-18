@@ -1,7 +1,13 @@
+// =========================
+// CONFIGURAÇÃO
+// =========================
+
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
+
 const playerSprite = new Image();
 playerSprite.src = "assets/lobito-sprites.png";
+
 const bulldogSprite = new Image();
 bulldogSprite.src = "assets/akela-sprites.png";
 
@@ -19,13 +25,20 @@ const player = {
 };
 
 const playerFrames = [
-  { x: 56,  y: 258, width: 142, height: 191 },
+  { x: 56, y: 258, width: 142, height: 191 },
   { x: 216, y: 257, width: 153, height: 193 },
   { x: 394, y: 258, width: 161, height: 192 },
   { x: 584, y: 258, width: 156, height: 193 },
   { x: 784, y: 255, width: 154, height: 196 },
   { x: 975, y: 258, width: 160, height: 198 }
 ];
+
+const playerIdleFrame = {
+  x: 825,
+  y: 0,
+  width: 125,
+  height: 240
+};
 
 const bulldog = {
   x: 600,
@@ -49,6 +62,11 @@ let playerWins = 0;
 let bulldogWins = 0;
 let roundNumber = 1;
 
+
+// =========================
+// CONTROLES
+// =========================
+
 document.addEventListener("keydown", function(event) {
   keys[event.code] = true;
 
@@ -65,6 +83,11 @@ document.addEventListener("keydown", function(event) {
 document.addEventListener("keyup", function(event) {
   keys[event.code] = false;
 });
+
+
+// =========================
+// MOVIMENTO
+// =========================
 
 function movePlayer() {
   player.moving = false;
@@ -108,9 +131,47 @@ function movePlayer() {
   }
 }
 
+function moveBulldog() {
+  const playerCenterX = player.x + player.width / 2;
+  const playerCenterY = player.y + player.height / 2;
+
+  const bulldogCenterX = bulldog.x + bulldog.width / 2;
+  const bulldogCenterY = bulldog.y + bulldog.height / 2;
+
+  if (playerCenterX < bulldogCenterX) {
+    bulldog.x -= bulldog.speed;
+    bulldog.direction = "left";
+  }
+
+  if (playerCenterX > bulldogCenterX) {
+    bulldog.x += bulldog.speed;
+    bulldog.direction = "right";
+  }
+
+  if (playerCenterY < bulldogCenterY) {
+    bulldog.y -= bulldog.speed * 0.7;
+  }
+
+  if (playerCenterY > bulldogCenterY) {
+    bulldog.y += bulldog.speed * 0.7;
+  }
+
+  if (bulldog.y < field.top) {
+    bulldog.y = field.top;
+  }
+
+  if (bulldog.y + bulldog.height > field.bottom) {
+    bulldog.y = field.bottom - bulldog.height;
+  }
+}
+
+
+// =========================
+// ANIMAÇÕES
+// =========================
+
 function updatePlayerAnimation() {
   if (!player.moving) {
-    player.frame = 0;
     player.frameTimer = 0;
     return;
   }
@@ -122,9 +183,87 @@ function updatePlayerAnimation() {
     player.frameTimer = 0;
 
     if (player.frame >= playerFrames.length) {
-  player.frame = 0;
-}
+      player.frame = 0;
+    }
   }
+}
+
+
+// =========================
+// COLISÕES E REGRAS
+// =========================
+
+function checkCollision() {
+  return (
+    player.x < bulldog.x + bulldog.width &&
+    player.x + player.width > bulldog.x &&
+    player.y < bulldog.y + bulldog.height &&
+    player.y + player.height > bulldog.y
+  );
+}
+
+function checkVictory() {
+  return player.x + player.width >= canvas.width - 20;
+}
+
+function resetRound() {
+  player.x = 80;
+  player.y = 400;
+
+  bulldog.x = 600;
+  bulldog.y = 365;
+
+  roundOver = false;
+  roundResult = "";
+  roundNumber++;
+}
+
+function endRound(result) {
+  roundOver = true;
+  roundResult = result;
+
+  if (result === "victory") {
+    playerWins++;
+  }
+
+  if (result === "caught") {
+    bulldogWins++;
+  }
+
+  setTimeout(resetRound, 3000);
+}
+
+
+// =========================
+// DESENHO
+// =========================
+
+function drawField() {
+  // Céu
+  ctx.fillStyle = "#87CEEB";
+  ctx.fillRect(0, 0, canvas.width, 180);
+
+  // Vegetação ao fundo
+  ctx.fillStyle = "#3d7a32";
+  ctx.fillRect(0, 180, canvas.width, 70);
+
+  // Campo
+  ctx.fillStyle = "#69b34c";
+  ctx.fillRect(0, 250, canvas.width, 290);
+
+  // Linhas de limite do campo
+  ctx.strokeStyle = "#d9e8b5";
+  ctx.lineWidth = 2;
+
+  ctx.beginPath();
+  ctx.moveTo(0, 250);
+  ctx.lineTo(canvas.width, 250);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(0, 520);
+  ctx.lineTo(canvas.width, 520);
+  ctx.stroke();
 }
 
 function drawScore() {
@@ -139,35 +278,10 @@ function drawScore() {
   ctx.fillText(`RONDA ${roundNumber}`, canvas.width - 20, 35);
 }
 
-function drawBulldog() {
-  ctx.save();
-
-  if (bulldog.direction === "left") {
-    ctx.translate(bulldog.x + bulldog.width, bulldog.y);
-    ctx.scale(-1, 1);
-
-    ctx.drawImage(
-      bulldogSprite,
-      1000, 0,
-      230, 270,
-      0, 0,
-      bulldog.width, bulldog.height
-    );
-  } else {
-    ctx.drawImage(
-      bulldogSprite,
-      1000, 0,
-      230, 270,
-      bulldog.x, bulldog.y,
-      bulldog.width, bulldog.height
-    );
-  }
-
-  ctx.restore();
-}
-
 function drawPlayer() {
-  const frame = playerFrames[player.frame];
+  const frame = player.moving
+    ? playerFrames[player.frame]
+    : playerIdleFrame;
 
   ctx.save();
 
@@ -203,32 +317,39 @@ function drawPlayer() {
   ctx.restore();
 }
 
-function drawField() {
-  // Céu
-  ctx.fillStyle = "#87CEEB";
-  ctx.fillRect(0, 0, canvas.width, 180);
+function drawBulldog() {
+  ctx.save();
 
-  // Vegetação ao fundo
-  ctx.fillStyle = "#3d7a32";
-  ctx.fillRect(0, 180, canvas.width, 70);
+  if (bulldog.direction === "left") {
+    ctx.translate(bulldog.x + bulldog.width, bulldog.y);
+    ctx.scale(-1, 1);
 
-  // Campo
-  ctx.fillStyle = "#69b34c";
-  ctx.fillRect(0, 250, canvas.width, 290);
+    ctx.drawImage(
+      bulldogSprite,
+      1000,
+      0,
+      230,
+      270,
+      0,
+      0,
+      bulldog.width,
+      bulldog.height
+    );
+  } else {
+    ctx.drawImage(
+      bulldogSprite,
+      1000,
+      0,
+      230,
+      270,
+      bulldog.x,
+      bulldog.y,
+      bulldog.width,
+      bulldog.height
+    );
+  }
 
-  // Linhas de limite do campo
-  ctx.strokeStyle = "#d9e8b5";
-  ctx.lineWidth = 2;
-
-  ctx.beginPath();
-  ctx.moveTo(0, 250);
-  ctx.lineTo(canvas.width, 250);
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.moveTo(0, 520);
-  ctx.lineTo(canvas.width, 520);
-  ctx.stroke();
+  ctx.restore();
 }
 
 function drawCaughtMessage() {
@@ -246,32 +367,25 @@ function drawCaughtMessage() {
   );
 }
 
-function resetRound() {
-  player.x = 80;
-  player.y = 400;
+function drawVictoryMessage() {
+  ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  bulldog.x = 600;
-  bulldog.y = 365;
+  ctx.fillStyle = "white";
+  ctx.font = "bold 48px monospace";
+  ctx.textAlign = "center";
 
-  roundOver = false;
-  roundResult = "";
-  roundNumber++;
+  ctx.fillText(
+    "CONSEGUIU!",
+    canvas.width / 2,
+    canvas.height / 2
+  );
 }
 
-function endRound(result) {
-  roundOver = true;
-  roundResult = result;
 
-  if (result === "victory") {
-    playerWins++;
-  }
-
-  if (result === "caught") {
-    bulldogWins++;
-  }
-
-  setTimeout(resetRound, 3000);
-}
+// =========================
+// GAME LOOP
+// =========================
 
 function gameLoop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -305,66 +419,9 @@ function gameLoop() {
   requestAnimationFrame(gameLoop);
 }
 
-function moveBulldog() {
-  const playerCenterX = player.x + player.width / 2;
-  const playerCenterY = player.y + player.height / 2;
 
-  const bulldogCenterX = bulldog.x + bulldog.width / 2;
-  const bulldogCenterY = bulldog.y + bulldog.height / 2;
-
-  if (playerCenterX < bulldogCenterX) {
-    bulldog.x -= bulldog.speed;
-    bulldog.direction = "left";
-  }
-
-  if (playerCenterX > bulldogCenterX) {
-    bulldog.x += bulldog.speed;
-    bulldog.direction = "right";
-  }
-
-  if (playerCenterY < bulldogCenterY) {
-    bulldog.y -= bulldog.speed * 0.7;
-  }
-
-  if (playerCenterY > bulldogCenterY) {
-    bulldog.y += bulldog.speed * 0.7;
-  }
-
-  if (bulldog.y < field.top) {
-    bulldog.y = field.top;
-  }
-
-  if (bulldog.y + bulldog.height > field.bottom) {
-    bulldog.y = field.bottom - bulldog.height;
-  }
-}
-
-function checkCollision() {
-  return (
-    player.x < bulldog.x + bulldog.width &&
-    player.x + player.width > bulldog.x &&
-    player.y < bulldog.y + bulldog.height &&
-    player.y + player.height > bulldog.y
-  );
-} 
-
-function checkVictory() {
-  return player.x + player.width >= canvas.width - 20;
-}
-
-function drawVictoryMessage() {
-  ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  ctx.fillStyle = "white";
-  ctx.font = "bold 48px monospace";
-  ctx.textAlign = "center";
-
-  ctx.fillText(
-    "CONSEGUIU!",
-    canvas.width / 2,
-    canvas.height / 2
-  );
-}
+// =========================
+// INICIAR JOGO
+// =========================
 
 gameLoop();
