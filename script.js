@@ -11,6 +11,9 @@ playerSprite.src = "assets/lobito-sprites.png";
 const bulldogSprite = new Image();
 bulldogSprite.src = "assets/akela-sprites.png";
 
+const escoteiroSprite = new Image();
+escoteiroSprite.src = "assets/escoteiro-sprites.png";
+
 const player = {
   x: 80,
   y: 400,
@@ -38,6 +41,20 @@ const playerIdleFrame = {
   y: 0,
   width: 125,
   height: 240
+};
+
+const promotionLobitoFrame = {
+  x: 825,
+  y: 0,
+  width: 125,
+  height: 240
+};
+
+const promotionEscoteiroFrame = {
+  x: 30,
+  y: 45,
+  width: 105,
+  height: 225
 };
 
 const bulldog = {
@@ -83,6 +100,8 @@ let bulldogWins = 0;
 let roundNumber = 1;
 let matchOver = false;
 let promotionStarted = false;
+let promotionTimer = 0;
+let promotionStage = 0;
 
 
 // =========================
@@ -265,6 +284,14 @@ function updateBulldogAnimation() {
   }
 }
 
+function updatePromotion() {
+  promotionTimer++;
+
+  if (promotionTimer > 120) {
+    promotionStage = 1;
+  }
+}
+
 
 // =========================
 // COLISÕES E REGRAS
@@ -400,6 +427,111 @@ function drawLevelCompleteMessage() {
     canvas.width / 2,
     canvas.height / 2 + 55
   );
+}
+
+function drawPromotion() {
+  // Fundo
+  ctx.fillStyle = "rgba(0, 0, 0, 0.90)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "white";
+  ctx.textAlign = "center";
+
+  // Título
+  ctx.font = "bold 30px monospace";
+  ctx.fillText(
+    "PROMOÇÃO!",
+    canvas.width / 2,
+    80
+  );
+
+  // =========================
+  // LOBITO
+  // =========================
+
+  if (promotionStage === 0) {
+    const frame = promotionLobitoFrame;
+
+    const drawWidth = 100;
+    const drawHeight = 150;
+
+    const drawX = canvas.width / 2 - drawWidth / 2;
+    const drawY = 150;
+
+    ctx.drawImage(
+      playerSprite,
+
+      frame.x,
+      frame.y,
+      frame.width,
+      frame.height,
+
+      drawX,
+      drawY,
+      drawWidth,
+      drawHeight
+    );
+
+    ctx.font = "bold 22px monospace";
+
+    ctx.fillText(
+      "LOBITO",
+      canvas.width / 2,
+      350
+    );
+
+    ctx.font = "bold 18px monospace";
+
+    ctx.fillText(
+      "MELHOR POSSÍVEL!",
+      canvas.width / 2,
+      385
+    );
+  }
+
+  // =========================
+  // ESCOTEIRO
+  // =========================
+
+  if (promotionStage === 1) {
+    const frame = promotionEscoteiroFrame;
+
+    const drawWidth = 100;
+    const drawHeight = 150;
+
+    const drawX = canvas.width / 2 - drawWidth / 2;
+    const drawY = 150;
+
+    ctx.drawImage(
+      escoteiroSprite,
+
+      frame.x,
+      frame.y,
+      frame.width,
+      frame.height,
+
+      drawX,
+      drawY,
+      drawWidth,
+      drawHeight
+    );
+
+    ctx.font = "bold 22px monospace";
+
+    ctx.fillText(
+      "ESCOTEIRO",
+      canvas.width / 2,
+      350
+    );
+
+    ctx.font = "bold 18px monospace";
+
+    ctx.fillText(
+      "SEMPRE PRONTO!",
+      canvas.width / 2,
+      385
+    );
+  }
 }
 
 function drawGameOverMessage() {
@@ -554,6 +686,14 @@ function drawVictoryMessage() {
 
 function gameLoop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (promotionStarted) {
+  updatePromotion();
+  drawPromotion();
+
+  requestAnimationFrame(gameLoop);
+  return;
+} 
 
   drawField();
   drawScore();
