@@ -82,6 +82,7 @@ let playerWins = 0;
 let bulldogWins = 0;
 let roundNumber = 1;
 let matchOver = false;
+let promotionStarted = false;
 
 
 // =========================
@@ -91,6 +92,7 @@ let matchOver = false;
 document.addEventListener("keydown", function(event) {
   keys[event.code] = true;
 
+  // Impede que as setas movimentem a página do navegador
   if (
     event.code === "ArrowUp" ||
     event.code === "ArrowDown" ||
@@ -98,6 +100,26 @@ document.addEventListener("keydown", function(event) {
     event.code === "ArrowRight"
   ) {
     event.preventDefault();
+  }
+
+  // Se Akelá venceu a melhor de 3,
+  // ENTER reinicia a partida
+  if (
+    event.code === "Enter" &&
+    matchOver &&
+    bulldogWins === 2
+  ) {
+    restartMatch();
+  }
+
+  // Se o Lobito venceu a melhor de 3,
+  // ENTER inicia a promoção
+  if (
+    event.code === "Enter" &&
+    matchOver &&
+    playerWins === 2
+  ) {
+    promotionStarted = true;
   }
 });
 
@@ -296,6 +318,28 @@ function endRound(result) {
   setTimeout(resetRound, 3000);
 }
 
+function restartMatch() {
+  playerWins = 0;
+  bulldogWins = 0;
+  roundNumber = 1;
+
+  player.x = 80;
+  player.y = 400;
+  player.direction = "right";
+  player.moving = false;
+  player.frame = 0;
+
+  bulldog.x = 600;
+  bulldog.y = 365;
+  bulldog.direction = "left";
+  bulldog.moving = false;
+  bulldog.frame = 0;
+
+  roundOver = false;
+  roundResult = "";
+  matchOver = false;
+}
+
 
 // =========================
 // DESENHO
@@ -334,21 +378,27 @@ function drawLevelCompleteMessage() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   ctx.fillStyle = "white";
-  ctx.font = "bold 42px monospace";
   ctx.textAlign = "center";
 
+  ctx.font = "bold 42px monospace";
   ctx.fillText(
     "NÍVEL LOBITOS CONCLUÍDO!",
     canvas.width / 2,
-    canvas.height / 2 - 20
+    canvas.height / 2 - 40
   );
 
   ctx.font = "bold 24px monospace";
-
   ctx.fillText(
     "AKELÁ DERROTADO",
     canvas.width / 2,
-    canvas.height / 2 + 30
+    canvas.height / 2 + 10
+  );
+
+  ctx.font = "bold 18px monospace";
+  ctx.fillText(
+    "PRESSIONE ENTER PARA AVANÇAR",
+    canvas.width / 2,
+    canvas.height / 2 + 55
   );
 }
 
@@ -366,13 +416,13 @@ function drawGameOverMessage() {
     canvas.height / 2 - 20
   );
 
-  ctx.font = "bold 24px monospace";
+  ctx.font = "bold 18px monospace";
 
   ctx.fillText(
-    "TENTE NOVAMENTE",
-    canvas.width / 2,
-    canvas.height / 2 + 30
-  );
+  "PRESSIONE ENTER PARA TENTAR NOVAMENTE",
+  canvas.width / 2,
+  canvas.height / 2 + 30
+);
 }
 
 function drawScore() {
