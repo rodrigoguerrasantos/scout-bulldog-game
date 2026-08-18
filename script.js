@@ -81,6 +81,7 @@ let roundResult = "";
 let playerWins = 0;
 let bulldogWins = 0;
 let roundNumber = 1;
+let matchOver = false;
 
 
 // =========================
@@ -276,7 +277,6 @@ function endRound(result) {
   roundOver = true;
   roundResult = result;
 
-  // Para as animações ao terminar a ronda
   player.moving = false;
   bulldog.moving = false;
 
@@ -286,6 +286,11 @@ function endRound(result) {
 
   if (result === "caught") {
     bulldogWins++;
+  }
+
+  if (playerWins === 2 || bulldogWins === 2) {
+    matchOver = true;
+    return;
   }
 
   setTimeout(resetRound, 3000);
@@ -322,6 +327,52 @@ function drawField() {
   ctx.moveTo(0, 520);
   ctx.lineTo(canvas.width, 520);
   ctx.stroke();
+}
+
+function drawLevelCompleteMessage() {
+  ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "white";
+  ctx.font = "bold 42px monospace";
+  ctx.textAlign = "center";
+
+  ctx.fillText(
+    "NÍVEL LOBITOS CONCLUÍDO!",
+    canvas.width / 2,
+    canvas.height / 2 - 20
+  );
+
+  ctx.font = "bold 24px monospace";
+
+  ctx.fillText(
+    "AKELÁ DERROTADO",
+    canvas.width / 2,
+    canvas.height / 2 + 30
+  );
+}
+
+function drawGameOverMessage() {
+  ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "white";
+  ctx.font = "bold 42px monospace";
+  ctx.textAlign = "center";
+
+  ctx.fillText(
+    "AKELÁ VENCEU!",
+    canvas.width / 2,
+    canvas.height / 2 - 20
+  );
+
+  ctx.font = "bold 24px monospace";
+
+  ctx.fillText(
+    "TENTE NOVAMENTE",
+    canvas.width / 2,
+    canvas.height / 2 + 30
+  );
 }
 
 function drawScore() {
@@ -457,12 +508,12 @@ function gameLoop() {
   drawField();
   drawScore();
 
-  if (!roundOver) {
+  if (!roundOver && !matchOver) {
     movePlayer();
-updatePlayerAnimation();
+    updatePlayerAnimation();
 
-moveBulldog();
-updateBulldogAnimation();
+    moveBulldog();
+    updateBulldogAnimation();
 
     if (checkCollision()) {
       endRound("caught");
@@ -474,12 +525,22 @@ updateBulldogAnimation();
   drawPlayer();
   drawBulldog();
 
-  if (roundResult === "caught") {
-    drawCaughtMessage();
-  }
+  if (matchOver) {
+    if (playerWins === 2) {
+      drawLevelCompleteMessage();
+    }
 
-  if (roundResult === "victory") {
-    drawVictoryMessage();
+    if (bulldogWins === 2) {
+      drawGameOverMessage();
+    }
+  } else {
+    if (roundResult === "caught") {
+      drawCaughtMessage();
+    }
+
+    if (roundResult === "victory") {
+      drawVictoryMessage();
+    }
   }
 
   requestAnimationFrame(gameLoop);
