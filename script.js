@@ -46,7 +46,27 @@ const bulldog = {
   width: 65,
   height: 90,
   speed: 1.1,
-  direction: "left"
+  direction: "left",
+  frame: 0,
+  frameTimer: 0,
+  frameSpeed: 10,
+  moving: false
+};
+
+const bulldogFrames = [
+  { x: 33,   y: 527, width: 210, height: 228 },
+  { x: 252,  y: 528, width: 199, height: 240 },
+  { x: 457,  y: 528, width: 201, height: 240 },
+  { x: 667,  y: 536, width: 201, height: 236 },
+  { x: 875,  y: 527, width: 182, height: 241 },
+  { x: 1118, y: 527, width: 197, height: 241 }
+];
+
+const bulldogIdleFrame = {
+  x: 1000,
+  y: 0,
+  width: 230,
+  height: 270
 };
 
 const field = {
@@ -132,36 +152,52 @@ function movePlayer() {
 }
 
 function moveBulldog() {
+  bulldog.moving = false;
+
   const playerCenterX = player.x + player.width / 2;
   const playerCenterY = player.y + player.height / 2;
 
   const bulldogCenterX = bulldog.x + bulldog.width / 2;
   const bulldogCenterY = bulldog.y + bulldog.height / 2;
 
-  if (playerCenterX < bulldogCenterX) {
-    bulldog.x -= bulldog.speed;
+  const turnMargin = 20;
+
+  // Movimento horizontal e direção visual
+  if (playerCenterX < bulldogCenterX - turnMargin) {
     bulldog.direction = "left";
-  }
-
-  if (playerCenterX > bulldogCenterX) {
-    bulldog.x += bulldog.speed;
+    bulldog.x -= bulldog.speed;
+    bulldog.moving = true;
+  } else if (playerCenterX > bulldogCenterX + turnMargin) {
     bulldog.direction = "right";
+    bulldog.x += bulldog.speed;
+    bulldog.moving = true;
   }
 
-  if (playerCenterY < bulldogCenterY) {
+  // Movimento vertical
+  if (playerCenterY < bulldogCenterY - 10) {
     bulldog.y -= bulldog.speed * 0.7;
-  }
-
-  if (playerCenterY > bulldogCenterY) {
+    bulldog.moving = true;
+  } else if (playerCenterY > bulldogCenterY + 10) {
     bulldog.y += bulldog.speed * 0.7;
+    bulldog.moving = true;
   }
 
+  // Limites verticais do campo
   if (bulldog.y < field.top) {
     bulldog.y = field.top;
   }
 
   if (bulldog.y + bulldog.height > field.bottom) {
     bulldog.y = field.bottom - bulldog.height;
+  }
+
+  // Limites horizontais
+  if (bulldog.x < 0) {
+    bulldog.x = 0;
+  }
+
+  if (bulldog.x + bulldog.width > canvas.width) {
+    bulldog.x = canvas.width - bulldog.width;
   }
 }
 
@@ -184,6 +220,24 @@ function updatePlayerAnimation() {
 
     if (player.frame >= playerFrames.length) {
       player.frame = 0;
+    }
+  }
+}
+
+function updateBulldogAnimation() {
+  if (!bulldog.moving) {
+    bulldog.frameTimer = 0;
+    return;
+  }
+
+  bulldog.frameTimer++;
+
+  if (bulldog.frameTimer >= bulldog.frameSpeed) {
+    bulldog.frame++;
+    bulldog.frameTimer = 0;
+
+    if (bulldog.frame >= bulldogFrames.length) {
+      bulldog.frame = 0;
     }
   }
 }
@@ -221,6 +275,10 @@ function resetRound() {
 function endRound(result) {
   roundOver = true;
   roundResult = result;
+
+  // Para as animações ao terminar a ronda
+  player.moving = false;
+  bulldog.moving = false;
 
   if (result === "victory") {
     playerWins++;
@@ -318,18 +376,24 @@ function drawPlayer() {
 }
 
 function drawBulldog() {
+  const frame = bulldog.moving
+    ? bulldogFrames[bulldog.frame]
+    : bulldogIdleFrame;
+
   ctx.save();
 
-  if (bulldog.direction === "left") {
+  // O sprite original já olha para a esquerda.
+  // Só espelhamos quando Akelá precisa olhar para a direita.
+  if (bulldog.direction === "right") {
     ctx.translate(bulldog.x + bulldog.width, bulldog.y);
     ctx.scale(-1, 1);
 
     ctx.drawImage(
       bulldogSprite,
-      1000,
-      0,
-      230,
-      270,
+      frame.x,
+      frame.y,
+      frame.width,
+      frame.height,
       0,
       0,
       bulldog.width,
@@ -338,10 +402,10 @@ function drawBulldog() {
   } else {
     ctx.drawImage(
       bulldogSprite,
-      1000,
-      0,
-      230,
-      270,
+      frame.x,
+      frame.y,
+      frame.width,
+      frame.height,
       bulldog.x,
       bulldog.y,
       bulldog.width,
@@ -395,8 +459,10 @@ function gameLoop() {
 
   if (!roundOver) {
     movePlayer();
-    updatePlayerAnimation();
-    moveBulldog();
+updatePlayerAnimation();
+
+moveBulldog();
+updateBulldogAnimation();
 
     if (checkCollision()) {
       endRound("caught");
